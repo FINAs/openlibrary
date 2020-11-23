@@ -138,7 +138,7 @@ def compose_ia_url(limit=None, page=1, subject=None, query=None, work_id=None,
     # our query, we assume only borrowable books will be included in
     # results (not unrestricted/open books).
     if (not query) or ('loans__status__status:' not in query):
-        q += ' AND loans__status__status:AVAILABLE'
+        q += ' AND (lending___available_to_browse OR lending___available_to_borrow)'
     if query:
         q += " AND " + query
     if subject:
@@ -189,6 +189,12 @@ def compose_ia_url(limit=None, page=1, subject=None, query=None, work_id=None,
     params = [
         ('q', q),
         ('fl[]', 'identifier'),
+        ('fl[]', 'lending___available_to_browse'),
+        ('fl[]', 'lending___available_to_borrow'),
+        ('fl[]', 'lending___available_to_waitlist'),
+        ('fl[]', 'lending___is_printdisabled'),
+        ('fl[]', 'lending___is_readable'),
+        ('fl[]', 'lending___is_lendable'),
         ('fl[]', 'openlibrary_edition'),
         ('fl[]', 'openlibrary_work'),
         ('fl[]', 'loans__status__status'),
@@ -207,7 +213,7 @@ def get_random_available_ia_edition():
     """uses archive advancedsearch to raise a random book"""
     try:
         url = ("http://%s/advancedsearch.php?q=_exists_:openlibrary_work"
-               "+AND+loans__status__status:AVAILABLE"
+               "+AND+(lending___available_to_borrow OR lending___available_to_browse)"
                "&fl=identifier,openlibrary_edition,loans__status__status"
                "&output=json&rows=1&sort[]=random" % (config_bookreader_host))
         response = requests.get(url, timeout=config_http_request_timeout)
@@ -309,14 +315,13 @@ def get_availability(key, ids):
     def update_availability_schema_to_v2(v1_resp, ocaid):
         collections = v1_resp.get('collection', [])
         v1_resp['identifier'] = ocaid
-        v1_resp['is_restricted'] = v1_resp['status'] != 'open'
-        v1_resp['is_printdisabled'] = 'printdisabled' in collections
-        v1_resp['is_lendable'] = 'inlibrary' in collections
-        v1_resp['is_readable'] = v1_resp['status'] == 'open'
-        # TODO: Make less brittle; maybe add simplelists/copy counts to IA availability
-        # endpoint
-        v1_resp['is_browseable'] = (v1_resp['is_lendable'] and
-                                    v1_resp['status'] == 'error')
+        v1_resp['is_printdisabled'] = v1_resp.get('is_printdisabled')
+        v1_resp['is_lendable'] = v1_resp.get('is_lendable')
+        v1_resp['is_readable'] = v1_resp.get('is_readable')
+        v1_resp['available_to_browse'] = v1_resp.get('available_to_browse')
+        v1_resp['available_to_borrow'] = v1_resp.get('available_to_borrow')
+        v1_resp['available_to_waitlist'] = v1_resp.get('available_to_waitlist')
+
         # For debugging
         v1_resp['__src__'] = 'core.models.lending.get_availability'
         return v1_resp

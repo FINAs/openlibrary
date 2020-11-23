@@ -28,8 +28,8 @@ $ is_lendable = lending_st.get('is_lendable', False) or availability.get('is_len
 $# there could be exception where ocaid insufficient because is_restricted but not printdisabled
 $# ^ This will be resolved when Jude adds 'access-restricted-item' check
 $ is_printdisabled = lending_st.get('is_printdisabled', False) or availability.get('is_printdisabled', False)
-$ is_borrowable = lending_st.get('available_to_borrow') or lending_st.get('available_to_browse') or availability_st == 'borrow_available' or my_turn_to_borrow
-$ is_restricted = availability.get('is_restricted', False)
+$ available_to_borrow = lending_st.get('available_to_borrow') or availability.get('available_to_borrow') or availability_st == 'borrow_available' or my_turn_to_borrow
+$ available_to_browse = lending_st.get('available_to_browse') or availability.get('available_to_browse')
 $ is_readable = ocaid and (lending_st.get('is_readable') or  availability.get('is_readable', False))
 $ borrow_link = '/borrow/ia/%s' % ocaid
 
@@ -58,13 +58,13 @@ $elif is_readable:
   $if secondary_action:
     $:macros.BookSearchInside(ocaid)
 
-$elif is_lendable and is_borrowable:
-  $ label = None
-  $if availability_st == 'borrow_unavailable' or lending_st and not lending_st.get('available_to_borrow'):
-      $ label = _('1 Hour Borrow')
-  $:macros.ReadButton(ocaid, borrow=True, listen=listen, label=label)
+$elif available_to_borrow:
+  $:macros.ReadButton(ocaid, borrow=True, listen=listen)
 
-$elif is_lendable and lending_st.get('available_to_waitlist', False):
+$elif available_to_browse:
+  $:macros.ReadButton(ocaid, borrow=True, listen=listen, label=_('1 Hour Borrow'))
+
+$elif availability.get('available_to_waitlist') or lending_st.get('available_to_waitlist'):
   $# lending_st is the only API which accurately tells us if a book is waitlistable
   $ wlsize = lending_st.get('users_on_waitlist') or availability.get('num_waitlist')
   $if waiting_loan:
@@ -84,7 +84,7 @@ $elif is_lendable and lending_st.get('available_to_waitlist', False):
     $# "JOIN-WAITLIST" button
     <p class="waitinglist-message">
       $if wlsize:
-        $_("Readers waiting for this title: %(count)d", count=wlsize)
+        $_("Readers waiting for this title: %(count)s", count=wlsize)
       $else:
         $_("You'll be next in line.")
     </p>

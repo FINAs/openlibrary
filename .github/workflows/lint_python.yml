@@ -6,11 +6,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - run: pip install black codespell flake8 isort pytest pyupgrade
-      - run: black --check . || true
+      - run: pip install --upgrade pip setuptools wheel
+      - run: pip install black codespell flake8 isort pytest pyupgrade safety
+      - run: pip install -r requirements_test.txt
+      - run: black --check --skip-string-normalization . || true
       - run: codespell --quiet-level=2 || true  # --ignore-words-list="" --skip=""
-      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - run: make lint
+      - run: make i18n
+      - run: make test-py
+      - run: source scripts/run_doctests.sh
       - run: isort --profile black . || true
       - run: pip install -r requirements.txt || true
-      - run: pytest . || true
       - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true

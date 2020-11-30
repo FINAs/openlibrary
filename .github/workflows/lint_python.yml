@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - run: sudo apt-get install python3-lxml
+      - run: sudo apt-get install libxml2-dev libxslt-dev
       - run: pip install --upgrade pip setuptools wheel
       - run: pip install black codespell flake8 isort pytest pyupgrade safety
       - run: pip install -r requirements_test.txt
